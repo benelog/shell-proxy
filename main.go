@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/benelog/shell-proxy/internal/auth"
 	"github.com/benelog/shell-proxy/internal/server"
 )
 
@@ -28,8 +29,16 @@ func main() {
 func run(args []string) int {
 	fs := flag.NewFlagSet("shell-proxy", flag.ContinueOnError)
 	interactive := fs.Bool("interactive", false, "enable the interactive PTY terminal at /term (allows vi, top, etc.)")
+	username := fs.String("user", "", "HTTP Basic auth username (default: the OS login account)")
+	password := fs.String("password", "", "HTTP Basic auth password (default: randomly generated at startup)")
 	if err := fs.Parse(args); err != nil {
 		return 2
+	}
+
+	creds, err := auth.Resolve(*username, *password)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "cannot generate a password:", err)
+		return 1
 	}
 
 	printUsage()
@@ -37,8 +46,9 @@ func run(args []string) int {
 	port := parsePort(fs.Args())
 	printServerAddressInfo(port)
 
-	srv := server.New(port)
+	srv := server.New(port, creds)
 	srv.SetInteractive(*interactive)
+	printAuthPolicy(creds, port)
 	if *interactive {
 		fmt.Println("Interactive PTY mode ENABLED: open /term (runs a real shell; trusted networks only)")
 	}
@@ -93,11 +103,52 @@ func localIP() string {
 	return conn.LocalAddr().(*net.UDPAddr).IP.String()
 }
 
+// printAuthPolicy explains the credentials policy at boot. A generated
+// password is printed because this is the only chance to see it; an
+// operator-supplied one is never echoed.
+func printAuthPolicy(creds auth.Credentials, port int) {
+	fmt.Println("-----------------------------")
+	fmt.Println("Authentication: HTTP Basic auth is required on every endpoint")
+	fmt.Println("   (/, /exec, /stop, /term, /pty, /assets/).")
+	fmt.Println("   Username : " + creds.Username + usernameOrigin(creds))
+	if creds.GeneratedPassword {
+		fmt.Println("   Password : " + creds.Password + "  (randomly generated for this run)")
+		fmt.Println("   The password changes on every restart. Use --user / --password to fix it.")
+	} else {
+		fmt.Println("   Password : (hidden; set with --password)")
+	}
+	fmt.Println()
+	fmt.Println("   Browsers prompt for these credentials on the first request.")
+	fmt.Printf("   From the command line:\n")
+	fmt.Printf("      curl -u '%s:%s' 'http://localhost:%d/exec?command=whoami'\n",
+		creds.Username, passwordForExample(creds), port)
+	fmt.Println("-----------------------------")
+	fmt.Println()
+}
+
+func usernameOrigin(creds auth.Credentials) string {
+	if creds.DefaultedUsername {
+		return "  (OS login account)"
+	}
+	return "  (from --user)"
+}
+
+func passwordForExample(creds auth.Credentials) string {
+	if creds.GeneratedPassword {
+		return creds.Password
+	}
+	return "<password>"
+}
+
 func printUsage() {
 	fmt.Println("-----------------------------")
 	fmt.Println("Usage:")
-	fmt.Println("   Prompt> shell-proxy [port]")
+	fmt.Println("   Prompt> shell-proxy [options] [port]")
 	fmt.Println()
+	fmt.Println("Options:")
+	fmt.Println("   --interactive        enable the PTY terminal at /term")
+	fmt.Println("   --user <name>        Basic auth username (default: OS login account)")
+	fmt.Println("   --password <secret>  Basic auth password (default: randomly generated)")
 	fmt.Println("-----------------------------")
 	fmt.Println()
 }

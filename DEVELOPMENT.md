@@ -34,9 +34,10 @@ The same checks run on every push and pull request through `.github/workflows/ci
 Layout
 ---------
 
-    main.go                            entry point, --interactive flag and port parsing
+    main.go                            entry point, flags, port parsing, startup banner
+    internal/auth/auth.go              resolves the Basic auth credentials (OS user + random password)
     internal/executor/executor.go      runs a command via the system shell, captures output
-    internal/server/server.go          HTTP server, stateless /exec and / handlers
+    internal/server/server.go          HTTP server, Basic auth gate, stateless /exec and / handlers
     internal/server/interactive.go     PTY + WebSocket bridge for /term and /pty
     internal/web/index.html            stateless CLI-style console
     internal/web/term.html             xterm.js interactive terminal UI
@@ -45,6 +46,11 @@ Layout
 
 The interactive endpoints are always registered but gated at request time on the server's `interactive` flag, so `/term` and `/pty` return `404` until the server is started with `--interactive`.
 Keep that gate in place when changing the PTY path, since it is what keeps the shell-spawning feature off by default.
+
+Authentication wraps the whole mux in `server.New`, so a new route is protected the moment it is registered: there is no per-handler auth code to forget.
+`New` takes the credentials as an argument rather than a setter, which makes an unauthenticated server impossible to construct.
+The 401 response must keep its `WWW-Authenticate` header, otherwise browsers never show the login prompt and the web UI becomes unreachable.
+Credential comparison goes through `crypto/subtle` on SHA-256 digests, so neither the password nor its length leaks through timing.
 
 Releasing
 ---------

@@ -8,7 +8,7 @@ import (
 )
 
 func TestTermIs404WhenInteractiveDisabled(t *testing.T) {
-	s := New(0) // interactive defaults to off
+	s := newTestServer() // interactive defaults to off
 	rec := httptest.NewRecorder()
 	s.handleTerm(rec, httptest.NewRequest(http.MethodGet, "/term", nil))
 
@@ -18,7 +18,7 @@ func TestTermIs404WhenInteractiveDisabled(t *testing.T) {
 }
 
 func TestPTYIs404WhenInteractiveDisabled(t *testing.T) {
-	s := New(0)
+	s := newTestServer()
 	rec := httptest.NewRecorder()
 	s.handlePTY(rec, httptest.NewRequest(http.MethodGet, "/pty", nil))
 
@@ -28,7 +28,7 @@ func TestPTYIs404WhenInteractiveDisabled(t *testing.T) {
 }
 
 func TestTermServesUIWhenInteractiveEnabled(t *testing.T) {
-	s := New(0)
+	s := newTestServer()
 	s.SetInteractive(true)
 	rec := httptest.NewRecorder()
 	s.handleTerm(rec, httptest.NewRequest(http.MethodGet, "/term", nil))
@@ -42,11 +42,16 @@ func TestTermServesUIWhenInteractiveEnabled(t *testing.T) {
 }
 
 func TestAssetsAreServed(t *testing.T) {
-	s := New(0)
+	s := newTestServer()
 	ts := httptest.NewServer(s.http.Handler)
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/assets/xterm.js")
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/assets/xterm.js", nil)
+	if err != nil {
+		t.Fatalf("bad request: %v", err)
+	}
+	req.SetBasicAuth(testUser, testPassword)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
 	}

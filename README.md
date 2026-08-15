@@ -9,7 +9,8 @@ It has two modes:
   Great for scripting and automation.
 - **Interactive mode** (opt-in via `--interactive`): a real PTY streamed to an xterm.js browser terminal, so you can run full-screen programs like `vi`, `top`, or `htop`.
 
-> ⚠️ **Security warning**: this server runs arbitrary shell commands with the privileges of the process that started it, and has **no authentication**.
+> ⚠️ **Security warning**: this server runs arbitrary shell commands with the privileges of the process that started it.
+> Every endpoint is behind HTTP Basic auth (see [Authentication](#authentication)), but the traffic is plain **HTTP with no TLS**, so credentials travel unencrypted.
 > Interactive mode gives a full login shell.
 > Run it only on trusted, isolated networks (localhost, a private lab, a container you control).
 > Never expose it to the public internet.
@@ -33,10 +34,45 @@ See [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ### Start the server
 
-	./shell-proxy [port]                # stateless only, default port 18080
+	./shell-proxy [options] [port]      # stateless only, default port 18080
 	./shell-proxy --interactive [port]  # also enable the /term PTY terminal
 
-On start it prints the reachable web address, e.g. `http://192.168.0.10:18080`.
+On start it prints the reachable web address, e.g. `http://192.168.0.10:18080`, followed by the credentials needed to reach it.
+
+## Authentication
+
+Every endpoint (`/`, `/exec`, `/stop`, `/term`, `/pty`, `/assets/`) requires **HTTP Basic auth**.
+There is no way to turn it off.
+
+By default:
+
+- the **username** is the OS account the server runs as (`whoami`);
+- the **password** is randomly generated (128 bits) each time the server starts, and printed to the console once, at startup.
+
+	-----------------------------
+	Authentication: HTTP Basic auth is required on every endpoint
+	   (/, /exec, /stop, /term, /pty, /assets/).
+	   Username : alice  (OS login account)
+	   Password : 4jddSK1CdMHklMzAifdkiQ  (randomly generated for this run)
+	   The password changes on every restart. Use --user / --password to fix it.
+
+	   Browsers prompt for these credentials on the first request.
+	   From the command line:
+	      curl -u 'alice:4jddSK1CdMHklMzAifdkiQ' 'http://localhost:18080/exec?command=whoami'
+	-----------------------------
+
+Because a generated password changes on every restart, set both explicitly when you want stable credentials (for a script, a service unit, or a container):
+
+	./shell-proxy --user ops --password 's3cr3t' 18080
+
+A password given with `--password` is never echoed to the console.
+
+| Option              | Default                       |
+| ------------------- | ----------------------------- |
+| `--user <name>`     | the OS login account          |
+| `--password <pass>` | randomly generated at startup |
+
+In a browser, the first request pops up the standard login prompt; the same credentials are then reused for `/term` and its `/pty` WebSocket connection.
 
 
 ## Stateless mode (default)
@@ -56,9 +92,10 @@ This UI and its API have no external dependencies, ship one embedded HTML page, 
 | GET      | `/`                     | Serve the web UI (when no `command` is present) |
 | GET      | `/stop`                 | Shut the server down                            |
 
-Example:
+Example (`-u` carries the Basic credentials printed at startup):
 
-	curl "http://localhost:18080/exec?command=echo%20hello%20%7C%20wc%20-w"
+	curl -u 'alice:4jddSK1CdMHklMzAifdkiQ' \
+	  "http://localhost:18080/exec?command=echo%20hello%20%7C%20wc%20-w"
 
 Response:
 
@@ -117,9 +154,12 @@ These expose shell commands as HTTP endpoints, usually mapping *fixed* commands 
   One command in, one JSON result out (`exitCode` + `stdout` + `stderr` + `timedOut`), so it is trivial to script against and not limited to a pre-wired route table like the command-mappers.
 - **Minimal by default.**
   With interactive mode off it is a small static binary with an embedded HTML console: no xterm.js bundle, no PTY layer in the request path.
+- **Authenticated by default, with zero setup.**
+  Both modes are behind HTTP Basic auth from the first run: no config file, no flag to remember, because the server generates a password at startup and prints it.
+  The streamers above ship basic-auth options too, but they are opt-in flags.
 
-Trade-off to be aware of: there is still **no authentication or TLS** in either mode, so this is a trusted-network tool, not an internet-facing one.
-The interactive streamers above generally ship basic-auth/TLS options that this project intentionally leaves out.
+Trade-off to be aware of: there is still **no TLS** in either mode, so credentials and command output travel in the clear.
+This remains a trusted-network tool, not an internet-facing one; put it behind a reverse proxy if you need transport encryption.
 
 
 ## Development

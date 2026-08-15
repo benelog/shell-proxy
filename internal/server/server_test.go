@@ -7,11 +7,24 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/benelog/shell-proxy/internal/auth"
 	"github.com/benelog/shell-proxy/internal/executor"
 )
 
+const (
+	testUser     = "tester"
+	testPassword = "s3cr3t"
+)
+
+// newTestServer builds a server with known credentials. Tests that call
+// handlers directly bypass the auth wrapper; tests that go through
+// s.http.Handler must send these credentials.
+func newTestServer() *ShellProxyServer {
+	return New(0, auth.Credentials{Username: testUser, Password: testPassword})
+}
+
 func TestExecReturnsCommandOutput(t *testing.T) {
-	s := New(0)
+	s := newTestServer()
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/exec?command=echo+hello", nil)
 
@@ -30,7 +43,7 @@ func TestExecReturnsCommandOutput(t *testing.T) {
 }
 
 func TestExecMissingCommandIsBadRequest(t *testing.T) {
-	s := New(0)
+	s := newTestServer()
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/exec", nil)
 
@@ -42,7 +55,7 @@ func TestExecMissingCommandIsBadRequest(t *testing.T) {
 }
 
 func TestRootServesUIWhenNoCommand(t *testing.T) {
-	s := New(0)
+	s := newTestServer()
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 
@@ -60,7 +73,7 @@ func TestRootServesUIWhenNoCommand(t *testing.T) {
 }
 
 func TestRootExecutesWhenCommandGiven(t *testing.T) {
-	s := New(0)
+	s := newTestServer()
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/?command=echo+hi", nil)
 
@@ -75,7 +88,7 @@ func TestRootExecutesWhenCommandGiven(t *testing.T) {
 }
 
 func TestStopInvokesCallback(t *testing.T) {
-	s := New(0)
+	s := newTestServer()
 	done := make(chan struct{})
 	s.OnStop(func() { close(done) })
 
@@ -90,7 +103,7 @@ func TestStopInvokesCallback(t *testing.T) {
 }
 
 func TestStartAndStop(t *testing.T) {
-	s := New(0) // port 0 => OS picks a free port
+	s := newTestServer() // port 0 => OS picks a free port
 	errCh := make(chan error, 1)
 	go func() { errCh <- s.Start() }()
 

@@ -3,12 +3,15 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/benelog/shell-proxy/internal/auth"
 	"github.com/benelog/shell-proxy/internal/executor"
 	"github.com/benelog/shell-proxy/internal/web"
 )
@@ -16,21 +19,29 @@ import (
 // defaultTimeout matches the original Java servlet's 61s command timeout.
 const defaultTimeout = 61 * time.Second
 
+// authRealm is the HTTP Basic realm shown in the browser's login prompt.
+const authRealm = "shell-proxy"
+
 // ShellProxyServer wraps an http.Server that executes shell commands.
 type ShellProxyServer struct {
 	http *http.Server
 	exec *executor.ShellExecutor
 	// interactive enables the PTY/WebSocket terminal endpoints. Off by default.
 	interactive bool
+	// creds are the HTTP Basic credentials every request must present.
+	creds auth.Credentials
 	// stopFn is invoked by the /stop endpoint. Defaults to os.Exit(0)-like
 	// behavior via the Starter; tests can override it.
 	stopFn func()
 }
 
-// New builds a ShellProxyServer listening on the given port.
-func New(port int) *ShellProxyServer {
+// New builds a ShellProxyServer listening on the given port. The credentials
+// are required: every endpoint is behind HTTP Basic auth, and passing them at
+// construction time makes it impossible to start an unprotected server.
+func New(port int, creds auth.Credentials) *ShellProxyServer {
 	s := &ShellProxyServer{
-		exec: executor.New(defaultTimeout),
+		exec:  executor.New(defaultTimeout),
+		creds: creds,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleRoot)
@@ -44,8 +55,10 @@ func New(port int) *ShellProxyServer {
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.FS(web.Assets()))))
 
 	s.http = &http.Server{
-		Addr:    ":" + strconv.Itoa(port),
-		Handler: mux,
+		Addr: ":" + strconv.Itoa(port),
+		// Every route, including /assets/ and the /pty WebSocket handshake,
+		// goes through the Basic auth gate.
+		Handler: s.withAuth(mux),
 	}
 	return s
 }
@@ -53,6 +66,31 @@ func New(port int) *ShellProxyServer {
 // SetInteractive enables or disables the interactive PTY terminal mode.
 func (s *ShellProxyServer) SetInteractive(enabled bool) {
 	s.interactive = enabled
+}
+
+// withAuth rejects requests that do not carry the expected Basic credentials.
+func (s *ShellProxyServer) withAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || !s.credentialsMatch(user, pass) {
+			log.Printf("unauthorized request from %s: %s %s", r.RemoteAddr, r.Method, r.URL.Path)
+			// The realm header is what makes the browser show a login prompt.
+			w.Header().Set("WWW-Authenticate", `Basic realm="`+authRealm+`", charset="UTF-8"`)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// credentialsMatch compares in constant time. Hashing first keeps the
+// comparison length-independent, so neither value's length leaks.
+func (s *ShellProxyServer) credentialsMatch(user, pass string) bool {
+	gotUser, wantUser := sha256.Sum256([]byte(user)), sha256.Sum256([]byte(s.creds.Username))
+	gotPass, wantPass := sha256.Sum256([]byte(pass)), sha256.Sum256([]byte(s.creds.Password))
+	userOK := subtle.ConstantTimeCompare(gotUser[:], wantUser[:]) == 1
+	passOK := subtle.ConstantTimeCompare(gotPass[:], wantPass[:]) == 1
+	return userOK && passOK
 }
 
 // OnStop registers the callback invoked when /stop is requested.
