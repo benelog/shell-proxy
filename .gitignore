@@ -1,5 +1,14 @@
-/target
-/deploy
-/.project
-/.classpath
-/.settings
+# Binaries
+/shell-proxy
+/dist
+*.exe
+
+# Test / coverage output
+*.out
+coverage.txt
+
+# Editor / IDE
+/.idea
+/.vscode
+*.swp
+*.swo

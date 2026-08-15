@@ -1,0 +1,8 @@
+module github.com/benelog/shell-proxy
+
+go 1.26.5
+
+require (
+	github.com/creack/pty v1.1.24
+	github.com/gorilla/websocket v1.5.3
+)

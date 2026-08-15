@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>shell-proxy — interactive</title>
+  <link rel="stylesheet" href="/assets/xterm.css" />
+  <style>
+    :root { --bg: #0b0e14; --dim: #7a8595; --accent: #5cc8ff; --err: #ff7b72; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      font: 13px "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+      color: var(--dim);
+    }
+    header {
+      padding: 8px 14px;
+      border-bottom: 1px solid #1c2230;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .dot.r { background: #ff5f56; } .dot.y { background: #ffbd2e; } .dot.g { background: #27c93f; }
+    header .title { margin-left: 8px; }
+    header .spacer { flex: 1; }
+    header .status { font-size: 12px; }
+    header .status.open { color: #27c93f; }
+    header .status.closed { color: var(--err); }
+    header a { color: var(--accent); text-decoration: none; font-size: 12px; }
+    #wrap { flex: 1; padding: 8px; overflow: hidden; }
+    #terminal { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="title" id="host">interactive</span>
+    <span class="spacer"></span>
+    <span class="status" id="status">connecting…</span>
+    <a href="/">↩ stateless console</a>
+  </header>
+  <div id="wrap"><div id="terminal"></div></div>
+
+  <script src="/assets/xterm.js"></script>
+  <script src="/assets/addon-fit.js"></script>
+  <script>
+    (function () {
+      const statusEl = document.getElementById('status');
+      document.getElementById('host').textContent = location.host + ' — interactive';
+
+      const term = new Terminal({
+        cursorBlink: true,
+        fontFamily: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+        fontSize: 13,
+        theme: { background: '#0b0e14', foreground: '#d7dce2', cursor: '#5cc8ff' }
+      });
+      const fit = new FitAddon.FitAddon();
+      term.loadAddon(fit);
+      term.open(document.getElementById('terminal'));
+      fit.fit();
+
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(proto + '://' + location.host + '/pty');
+      ws.binaryType = 'arraybuffer';
+
+      function setStatus(text, cls) {
+        statusEl.textContent = text;
+        statusEl.className = 'status' + (cls ? ' ' + cls : '');
+      }
+
+      function sendResize() {
+        if (ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({ cols: term.cols, rows: term.rows }));
+      }
+
+      ws.onopen = function () {
+        setStatus('connected', 'open');
+        sendResize();
+        term.focus();
+      };
+
+      ws.onmessage = function (ev) {
+        if (typeof ev.data === 'string') {
+          term.write(ev.data);
+        } else {
+          term.write(new Uint8Array(ev.data));
+        }
+      };
+
+      ws.onclose = function () {
+        setStatus('session closed', 'closed');
+        term.write('\r\n\x1b[31m[session closed]\x1b[0m\r\n');
+      };
+
+      ws.onerror = function () { setStatus('connection error', 'closed'); };
+
+      // Keystrokes -> server as binary frames.
+      term.onData(function (data) {
+        if (ws.readyState === WebSocket.OPEN) ws.send(new TextEncoder().encode(data));
+      });
+
+      window.addEventListener('resize', function () { fit.fit(); sendResize(); });
+      term.onResize(sendResize);
+    })();
+  </script>
+</body>
+</html>
