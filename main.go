@@ -44,14 +44,13 @@ func run(args []string) int {
 	printUsage()
 
 	port := parsePort(fs.Args())
-	printServerAddressInfo(port)
+	ip := localIP()
+	fmt.Printf("Web address: http://%s:%d\n", ip, port)
 
 	srv := server.New(port, creds)
 	srv.SetInteractive(*interactive)
 	printAuthPolicy(creds, port)
-	if *interactive {
-		fmt.Println("Interactive PTY mode ENABLED: open /term (runs a real shell; trusted networks only)")
-	}
+	printModePolicy(*interactive, ip, port)
 	srv.OnStop(func() {
 		fmt.Println("Server stop")
 		_ = srv.Stop()
@@ -87,9 +86,24 @@ func parsePort(args []string) int {
 	return port
 }
 
-func printServerAddressInfo(port int) {
-	ip := localIP()
-	fmt.Printf("Web address: http://%s:%d\n", ip, port)
+// printModePolicy spells out which of the two UIs is reachable. The web
+// address above points at the stateless console, where full-screen programs
+// such as vi or top cannot work: they need the PTY terminal, so its URL is
+// printed here rather than left for the reader to guess.
+func printModePolicy(interactive bool, ip string, port int) {
+	fmt.Println("-----------------------------")
+	if interactive {
+		fmt.Println("Interactive PTY mode ENABLED (a real login shell; trusted networks only).")
+		fmt.Printf("   Terminal      : http://%s:%d/term   vi, top, and other full-screen programs\n", ip, port)
+		fmt.Printf("   JSON console  : http://%s:%d/       one command in, one JSON result out\n", ip, port)
+	} else {
+		fmt.Println("Interactive PTY mode disabled: /term and /pty return 404.")
+		fmt.Printf("   JSON console  : http://%s:%d/       one command in, one JSON result out\n", ip, port)
+		fmt.Println("   Full-screen programs (vi, top, ...) cannot run here; they need a real")
+		fmt.Println("   terminal, so restart with --interactive to get one at /term.")
+	}
+	fmt.Println("-----------------------------")
+	fmt.Println()
 }
 
 // localIP returns the machine's primary outbound IP, or "localhost" if it

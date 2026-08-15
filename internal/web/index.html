@@ -37,6 +37,10 @@
     header .spacer { flex: 1; }
     header .status { font-size: 12px; color: var(--dim); }
     header .status.busy { color: var(--accent); }
+    /* Shown only when the server was started with --interactive; the server
+       flips data-interactive on <body> as it serves this page. */
+    header .term-link { display: none; font-size: 12px; text-decoration: none; }
+    body[data-interactive="true"] header .term-link { display: inline; }
     #terminal {
       flex: 1;
       overflow-y: auto;
@@ -69,12 +73,13 @@
     a { color: var(--accent); }
   </style>
 </head>
-<body>
+<body data-interactive="false">
   <header>
     <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
     <span class="title" id="host">shell-proxy</span>
     <span class="spacer"></span>
     <span class="status" id="status">ready</span>
+    <a class="term-link" href="/term" title="vi, top and other full-screen programs need a real terminal">⌨ interactive terminal</a>
   </header>
 
   <div id="terminal" aria-live="polite"></div>

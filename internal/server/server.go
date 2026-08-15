@@ -2,6 +2,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -124,10 +125,29 @@ func (s *ShellProxyServer) handleRoot(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Query().Get("command") == "" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write(web.IndexHTML)
+		_, _ = w.Write(s.indexHTML())
 		return
 	}
 	s.handleExec(w, r)
+}
+
+// interactiveOff / interactiveOn are the <body> attribute the stateless page
+// ships with and the value it gets when the PTY terminal is available. The
+// page hides its /term link unless the attribute is flipped, so the stateless
+// console never advertises an endpoint that would answer 404.
+var (
+	interactiveOff = []byte(`data-interactive="false"`)
+	interactiveOn  = []byte(`data-interactive="true"`)
+)
+
+// indexHTML returns the stateless console, telling it whether the interactive
+// terminal is reachable. Full-screen programs (vi, top, and the like) cannot
+// work in stateless mode, so this link is how users find /term.
+func (s *ShellProxyServer) indexHTML() []byte {
+	if !s.interactive {
+		return web.IndexHTML
+	}
+	return bytes.Replace(web.IndexHTML, interactiveOff, interactiveOn, 1)
 }
 
 // handleExec runs the "command" parameter and returns the result as JSON.

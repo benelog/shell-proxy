@@ -83,6 +83,9 @@ You get a CLI-style console: type a command, press Enter, and see stdout (white)
 
 This UI and its API have no external dependencies, ship one embedded HTML page, and work offline.
 
+Each command runs without a terminal attached, so full-screen programs cannot work here: `vi` produces no screen and sits there until the 61-second timeout, and `top` exits with `failed tty get`.
+Those need [interactive mode](#interactive-mode---interactive); when the server is started with `--interactive`, this console shows a link to `/term` in its header.
+
 ### HTTP API
 
 | Method   | Path                    | Description                                     |
@@ -115,7 +118,8 @@ Each command has a 61-second timeout; a command killed by the timeout reports `"
 ## Interactive mode (`--interactive`)
 
 Start with `--interactive` and open `http://localhost:18080/term`.
-This runs a real login shell in a PTY and streams it to an xterm.js terminal over WebSocket, so **interactive full-screen programs work**: `vi`, `top`, tab-completion, colors, `Ctrl+C`, resizing, and so on.
+This runs a real login shell in a PTY and streams it to an xterm.js terminal over WebSocket, so **interactive full-screen programs work**: `vi`, `top`, `claude`, tab-completion, colors, `Ctrl+C`, resizing, and so on.
+The startup banner prints the `/term` address, and the stateless console links to it, so you do not have to remember the path.
 
 | Path                    | Description                                                  |
 | ----------------------- | ------------------------------------------------------------ |

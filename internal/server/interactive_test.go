@@ -41,6 +41,32 @@ func TestTermServesUIWhenInteractiveEnabled(t *testing.T) {
 	}
 }
 
+// The stateless console only advertises /term when that endpoint would
+// actually answer, mirroring the 404 gate above.
+func TestStatelessConsoleLinksToTermOnlyWhenInteractive(t *testing.T) {
+	for _, tc := range []struct {
+		interactive bool
+		want        string
+	}{
+		// The <body> tag is what the CSS keys off; matching the bare
+		// attribute would also hit the stylesheet's own selector.
+		{false, `<body data-interactive="false">`},
+		{true, `<body data-interactive="true">`},
+	} {
+		s := newTestServer()
+		s.SetInteractive(tc.interactive)
+		rec := httptest.NewRecorder()
+		s.handleRoot(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+
+		if !strings.Contains(rec.Body.String(), tc.want) {
+			t.Errorf("interactive=%t: page did not contain %s", tc.interactive, tc.want)
+		}
+		if !strings.Contains(rec.Body.String(), `href="/term"`) {
+			t.Errorf("interactive=%t: page is missing the /term link markup", tc.interactive)
+		}
+	}
+}
+
 func TestAssetsAreServed(t *testing.T) {
 	s := newTestServer()
 	ts := httptest.NewServer(s.http.Handler)
