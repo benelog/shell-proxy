@@ -2,10 +2,7 @@ shell-proxy
 ===========
 
 A small HTTP server that executes shell commands and returns the result as JSON,
-plus a terminal-style web UI to type commands from the browser.
-
-Originally written in Java (Jetty + Servlet); this repository is now a **Go
-port**. It has two modes:
+plus a terminal-style web UI to type commands from the browser. It has two modes:
 
 - **Stateless mode** (default) — dependency-free, single static binary. One
   command in, one JSON result out. Great for scripting and automation.
@@ -36,22 +33,12 @@ Available assets: `shell-proxy-linux-amd64`, `shell-proxy-linux-arm64`,
 `shell-proxy-windows-amd64.exe`. To pin a version, replace `latest/download`
 with `download/v2.0.0`.
 
-### Build from source
-
-	go build -o shell-proxy .
-
-Or cross-compile every release binary into `dist/`:
-
-	make dist
+Prefer to build it yourself? See [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ### Start the server
 
 	./shell-proxy [port]                # stateless only, default port 18080
 	./shell-proxy --interactive [port]  # also enable the /term PTY terminal
-
-Or without building:
-
-	go run . [port]
 
 On start it prints the reachable web address, e.g. `http://192.168.0.10:18080`.
 
@@ -63,15 +50,15 @@ CLI-style console: type a command, press Enter, and see stdout (white), stderr
 (red), and the exit code inline. `↑`/`↓` walk through history; `clear` wipes the
 screen.
 
-This UI and its API use **only the Go standard library** — no external
-dependencies, one embedded HTML page, works offline.
+This UI and its API have no external dependencies, ship one embedded HTML page,
+and work offline.
 
 ### HTTP API
 
 | Method   | Path                    | Description                                     |
 | -------- | ----------------------- | ----------------------------------------------- |
 | GET/POST | `/exec?command=<cmd>`   | Run `<cmd>`, return the result as JSON          |
-| GET      | `/?command=<cmd>`       | Same as above (backward compatible with v0.1)   |
+| GET      | `/?command=<cmd>`       | Same as above                                   |
 | GET      | `/`                     | Serve the web UI (when no `command` is present) |
 | GET      | `/stop`                 | Shut the server down                            |
 
@@ -107,7 +94,6 @@ colors, `Ctrl+C`, resizing, and so on.
 | GET `/term`             | The xterm.js terminal UI                                     |
 | WS  `/pty`              | WebSocket ↔ PTY bridge (binary = keystrokes, text = resize)  |
 | GET `/pty?command=<c>`  | Run a specific program in the PTY instead of a login shell   |
-| GET `/assets/*`         | Vendored xterm.js / CSS / fit-addon                          |
 
 When interactive mode is **not** enabled, `/term` and `/pty` return `404`, so the
 feature is invisible unless you explicitly turn it on.
@@ -117,50 +103,7 @@ Notes:
 - **Off by default** for safety — a PTY session is a full shell.
 - **Unix only.** PTY allocation is not supported on Windows; `/pty` returns
   `501` there.
-- The xterm.js bundle is **vendored and embedded** (`internal/web/assets`), so it
-  still works offline with no CDN.
-
-
-## Development
-
-Quality checks are wired through a `Makefile` and mirrored in CI
-(`.github/workflows/ci.yml`):
-
-	make fmt      # goimports -w .
-	make lint     # golangci-lint run ./...   (config: .golangci.yml)
-	make test     # go test ./...
-	make check    # fmt + lint + test
-
-Linting uses golangci-lint v2 with the `standard` set plus `misspell`, and
-`gofmt`/`goimports` as formatters. GitHub Actions runs `lint` and `test` on every
-push to `master` and on pull requests.
-
-
-## Dependencies
-
-- **Stateless mode**: none — Go standard library only.
-- **Interactive mode**: [`github.com/creack/pty`](https://github.com/creack/pty)
-  (PTY allocation), [`github.com/gorilla/websocket`](https://github.com/gorilla/websocket)
-  (WebSocket), and the vendored [xterm.js](https://xtermjs.org/) front end. These
-  are only pulled in for the interactive endpoints; the stateless request path
-  never touches them.
-
-
-## Notes on the port from Java
-
-The behavior matches the original where it matters, with a few deliberate
-improvements:
-
-- **Shell features**: the Java version tokenized the command with commons-exec's
-  `CommandLine.parse`, so pipes/redirection did not work. The Go port runs the
-  command through the system shell, which is what a terminal user expects.
-- **Timeout reporting**: a new `timedOut` field surfaces watchdog kills that the
-  original silently returned as a non-zero exit code.
-- **Interactive terminal**: a new opt-in PTY mode the original did not have.
-- **No-arg start**: the Go binary starts on the default port when no argument is
-  given, instead of only printing usage.
-- **Graceful shutdown**: `Ctrl+C`/`SIGTERM` and `/stop` shut the HTTP server down
-  cleanly rather than calling `System.exit(0)` mid-request.
+- Works offline: the xterm.js front end is bundled into the binary, no CDN.
 
 
 ## How this differs from similar open-source tools
@@ -188,21 +131,26 @@ to *fixed* routes (e.g. `/date` → `date`), aimed at webhooks and automation.
 
 - **Two modes, one binary, clean separation.** The same tool gives you a
   scriptable stateless JSON API *and* an interactive PTY terminal — most projects
-  pick one lane. The two never bleed into each other: the stateless path stays
-  dependency-free, and PTY/WebSocket/xterm.js load only for the interactive
-  endpoints, which are 404 until `--interactive` is set.
+  pick one lane. The stateless path stays dependency-free; the PTY terminal loads
+  only when you pass `--interactive`, and is 404 until then.
 - **Stateless mode returns structured data, not a stream.** One command in, one
   JSON result out (`exitCode` + `stdout` + `stderr` + `timedOut`) — trivial to
   script against, and not limited to a pre-wired route table like the
   command-mappers.
-- **Minimal by default.** With interactive mode off it is a pure standard-library
-  static binary with an embedded HTML console — no xterm.js bundle, no PTY layer
-  in the request path.
+- **Minimal by default.** With interactive mode off it is a small static binary
+  with an embedded HTML console — no xterm.js bundle, no PTY layer in the request
+  path.
 
 Trade-off to be aware of: there is still **no authentication or TLS** in either
 mode, so this is a trusted-network tool, not an internet-facing one — the
 interactive streamers above generally ship basic-auth/TLS options that this
 project intentionally leaves out.
+
+
+## Development
+
+Building from source, quality tooling, project layout, and the release process
+live in [DEVELOPMENT.md](DEVELOPMENT.md).
 
 
 ## License
