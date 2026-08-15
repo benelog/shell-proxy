@@ -76,8 +76,8 @@ func (s *ShellProxyServer) Stop() error {
 	return s.http.Shutdown(ctx)
 }
 
-// handleRoot serves the UI when no command is given, and — for backward
-// compatibility with the original "/?command=..." contract — executes the
+// handleRoot serves the UI when no command is given, and, for backward
+// compatibility with the original "/?command=..." contract, executes the
 // command when one is present.
 func (s *ShellProxyServer) handleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {

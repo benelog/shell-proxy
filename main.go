@@ -40,7 +40,7 @@ func run(args []string) int {
 	srv := server.New(port)
 	srv.SetInteractive(*interactive)
 	if *interactive {
-		fmt.Println("Interactive PTY mode ENABLED — open /term (runs a real shell; trusted networks only)")
+		fmt.Println("Interactive PTY mode ENABLED: open /term (runs a real shell; trusted networks only)")
 	}
 	srv.OnStop(func() {
 		fmt.Println("Server stop")

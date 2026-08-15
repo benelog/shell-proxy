@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>shell-proxy — interactive</title>
+  <title>shell-proxy (interactive)</title>
   <link rel="stylesheet" href="/assets/xterm.css" />
   <style>
     :root { --bg: #0b0e14; --dim: #7a8595; --accent: #5cc8ff; --err: #ff7b72; }
@@ -51,7 +51,7 @@
   <script>
     (function () {
       const statusEl = document.getElementById('status');
-      document.getElementById('host').textContent = location.host + ' — interactive';
+      document.getElementById('host').textContent = location.host + ' | interactive';
 
       const term = new Terminal({
         cursorBlink: true,

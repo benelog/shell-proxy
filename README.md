@@ -4,9 +4,9 @@ shell-proxy
 A small HTTP server that executes shell commands and returns the result as JSON,
 plus a terminal-style web UI to type commands from the browser. It has two modes:
 
-- **Stateless mode** (default) — dependency-free, single static binary. One
+- **Stateless mode** (default): dependency-free, single static binary. One
   command in, one JSON result out. Great for scripting and automation.
-- **Interactive mode** (opt-in via `--interactive`) — a real PTY streamed to an
+- **Interactive mode** (opt-in via `--interactive`): a real PTY streamed to an
   xterm.js browser terminal, so you can run full-screen programs like `vi`,
   `top`, or `htop`.
 
@@ -100,7 +100,7 @@ feature is invisible unless you explicitly turn it on.
 
 Notes:
 
-- **Off by default** for safety — a PTY session is a full shell.
+- **Off by default** for safety, because a PTY session is a full shell.
 - **Unix only.** PTY allocation is not supported on Windows; `/pty` returns
   `501` there.
 - Works offline: the xterm.js front end is bundled into the binary, no CDN.
@@ -112,15 +112,15 @@ There is a crowded field of "shell over the web" projects. They fall into two
 camps; `shell-proxy` deliberately offers **both** in one binary, with the split
 kept explicit.
 
-**1. Interactive PTY streamers** — [gotty](https://github.com/yudai/gotty),
+**1. Interactive PTY streamers**: [gotty](https://github.com/yudai/gotty),
 [ttyd](https://github.com/tsl0922/ttyd), [wetty](https://github.com/butlerx/wetty),
 [webssh](https://github.com/huashengdun/webssh).
 These allocate a real pseudo-terminal and stream it over WebSocket with xterm.js,
 giving a fully interactive session. That is exactly what `shell-proxy`'s
-`--interactive` mode does — but it is *one opt-in half* of the tool, off by
+`--interactive` mode does, but it is *one opt-in half* of the tool, off by
 default, rather than the whole product.
 
-**2. Command-to-HTTP mappers** —
+**2. Command-to-HTTP mappers**:
 [shell2http](https://github.com/msoap/shell2http),
 [shellst](https://github.com/fdefelici/shellst),
 [go-shell-run](https://github.com/harrisoncramer/go-shell-run).
@@ -130,19 +130,19 @@ to *fixed* routes (e.g. `/date` → `date`), aimed at webhooks and automation.
 **Where `shell-proxy` differs:**
 
 - **Two modes, one binary, clean separation.** The same tool gives you a
-  scriptable stateless JSON API *and* an interactive PTY terminal — most projects
-  pick one lane. The stateless path stays dependency-free; the PTY terminal loads
-  only when you pass `--interactive`, and is 404 until then.
+  scriptable stateless JSON API *and* an interactive PTY terminal, while most
+  projects pick one lane. The stateless path stays dependency-free; the PTY
+  terminal loads only when you pass `--interactive`, and is 404 until then.
 - **Stateless mode returns structured data, not a stream.** One command in, one
-  JSON result out (`exitCode` + `stdout` + `stderr` + `timedOut`) — trivial to
-  script against, and not limited to a pre-wired route table like the
+  JSON result out (`exitCode` + `stdout` + `stderr` + `timedOut`), so it is
+  trivial to script against and not limited to a pre-wired route table like the
   command-mappers.
 - **Minimal by default.** With interactive mode off it is a small static binary
-  with an embedded HTML console — no xterm.js bundle, no PTY layer in the request
+  with an embedded HTML console: no xterm.js bundle, no PTY layer in the request
   path.
 
 Trade-off to be aware of: there is still **no authentication or TLS** in either
-mode, so this is a trusted-network tool, not an internet-facing one — the
+mode, so this is a trusted-network tool, not an internet-facing one. The
 interactive streamers above generally ship basic-auth/TLS options that this
 project intentionally leaves out.
 

@@ -50,7 +50,7 @@ Layout
 The interactive endpoints are always registered but gated at request time on the
 server's `interactive` flag, so `/term` and `/pty` return `404` until the server
 is started with `--interactive`. Keep that gate in place when changing the PTY
-path — it is what keeps the shell-spawning feature off by default.
+path, since it is what keeps the shell-spawning feature off by default.
 
 Releasing
 ---------

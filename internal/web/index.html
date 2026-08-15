@@ -93,7 +93,7 @@
       const history = [];
       let histIdx = 0;
 
-      document.getElementById('host').textContent = location.host + ' — shell-proxy';
+      document.getElementById('host').textContent = location.host + ' | shell-proxy';
 
       function scroll() { term.scrollTop = term.scrollHeight; }
 
@@ -173,7 +173,7 @@
         if (window.getSelection().isCollapsed) input.focus();
       });
 
-      append('shell-proxy — type a shell command below. "clear" wipes the screen.', 'meta');
+      append('shell-proxy: type a shell command below. "clear" wipes the screen.', 'meta');
       scroll();
     })();
   </script>
