@@ -3,46 +3,93 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>shell-proxy (interactive)</title>
+  <title>shell-proxy · terminal</title>
   <link rel="stylesheet" href="/assets/xterm.css" />
   <style>
-    :root { --bg: #0b0e14; --dim: #7a8595; --accent: #5cc8ff; --err: #ff7b72; }
+    :root {
+      --bg: #0a0d12;
+      --panel: #0e141c;
+      --line: #1f2836;
+      --fg: #cdd7e1;
+      --dim: #77828f;
+      --amber: #ffb454;   /* this page's circuit: live PTY */
+      --green: #4adfa4;   /* the stateless circuit, used to point at /console */
+      --red: #ff7069;
+    }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body {
       background: var(--bg);
       display: flex;
       flex-direction: column;
-      font: 13px "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-      color: var(--dim);
+      font: 13px ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+      color: var(--fg);
     }
     header {
-      padding: 8px 14px;
-      border-bottom: 1px solid #1c2230;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       user-select: none;
     }
-    .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-    .dot.r { background: #ff5f56; } .dot.y { background: #ffbd2e; } .dot.g { background: #27c93f; }
-    header .title { margin-left: 8px; }
+    .led {
+      width: 9px; height: 9px; border-radius: 50%; flex: none;
+      background: var(--dim);
+      box-shadow: none;
+    }
+    body[data-conn="open"] .led { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+    body[data-conn="closed"] .led { background: var(--red); box-shadow: 0 0 8px var(--red); }
+    header .title { color: var(--dim); font-size: 12px; }
+    .mode {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 7px;
+      background: var(--panel);
+    }
     header .spacer { flex: 1; }
-    header .status { font-size: 12px; }
-    header .status.open { color: #27c93f; }
-    header .status.closed { color: var(--err); }
-    header a { color: var(--accent); text-decoration: none; font-size: 12px; }
-    #wrap { flex: 1; padding: 8px; overflow: hidden; }
+    header .status {
+      font-size: 12px;
+      color: var(--dim);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 10px;
+      background: var(--panel);
+    }
+    header .status.open { color: var(--amber); border-color: rgba(255, 180, 84, .4); }
+    header .status.closed { color: var(--red); border-color: rgba(255, 112, 105, .45); }
+    header a {
+      color: var(--green);
+      text-decoration: none;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 2px 9px;
+      transition: border-color .15s;
+    }
+    header a:hover, header a:focus-visible { border-color: var(--green); outline: none; }
+    #wrap { flex: 1; padding: 10px 12px 12px; overflow: hidden; }
     #terminal { width: 100%; height: 100%; }
+    #terminal .xterm-viewport { scrollbar-color: var(--line) transparent; scrollbar-width: thin; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      body[data-conn="open"] .led { animation: breathe 2.6s ease-in-out infinite; }
+      @keyframes breathe { 50% { box-shadow: 0 0 3px var(--amber); } }
+    }
   </style>
 </head>
-<body>
+<body data-conn="connecting">
   <header>
-    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="led"></span>
     <span class="title" id="host">interactive</span>
+    <span class="mode">live pty</span>
     <span class="spacer"></span>
-    <span class="status" id="status">connecting…</span>
     <a href="/console">↩ stateless console</a>
+    <span class="status" id="status">connecting…</span>
   </header>
   <div id="wrap"><div id="terminal"></div></div>
 
@@ -55,9 +102,15 @@
 
       const term = new Terminal({
         cursorBlink: true,
-        fontFamily: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+        fontFamily: 'ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace',
         fontSize: 13,
-        theme: { background: '#0b0e14', foreground: '#d7dce2', cursor: '#5cc8ff' }
+        theme: {
+          background: '#0a0d12',
+          foreground: '#cdd7e1',
+          cursor: '#ffb454',
+          cursorAccent: '#0a0d12',
+          selectionBackground: '#264f78'
+        }
       });
       const fit = new FitAddon.FitAddon();
       term.loadAddon(fit);
@@ -71,6 +124,7 @@
       function setStatus(text, cls) {
         statusEl.textContent = text;
         statusEl.className = 'status' + (cls ? ' ' + cls : '');
+        document.body.dataset.conn = cls || 'connecting';
       }
 
       function sendResize() {
