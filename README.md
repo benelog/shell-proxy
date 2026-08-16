@@ -27,7 +27,7 @@ Download the binary for your platform from the [latest release](https://github.c
 	./shell-proxy-linux-amd64
 
 Available assets: `shell-proxy-linux-amd64`, `shell-proxy-linux-arm64`, `shell-proxy-darwin-amd64`, `shell-proxy-darwin-arm64`, `shell-proxy-windows-amd64.exe`.
-To pin a version, replace `latest/download` with `download/v2.0.0`.
+To pin a version, replace `latest/download` with `download/v2.1.0`.
 
 Prefer to build it yourself?
 See [DEVELOPMENT.md](DEVELOPMENT.md).

@@ -63,7 +63,12 @@ A missing `Origin` means a non-browser client and is allowed, since such a clien
 Releasing
 ---------
 
-Cross-compile one static binary per platform, tag, then publish the assets:
+The whole mechanical sequence lives in `.claude/skills/release/scripts/release.sh`:
+
+    .claude/skills/release/scripts/release.sh vX.Y.Z /path/to/notes.md
+
+It checks the preconditions (clean tree, tag not taken, `gh` authenticated, `README.md` pinned version bumped), then runs `make ci`, `make dist`, tags, pushes, and publishes the release with the notes file.
+The equivalent manual steps, should the script be unavailable:
 
     make dist                                     # builds dist/shell-proxy-<os>-<arch>
     git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z
