@@ -5,9 +5,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/benelog/shell-proxy/internal/web"
 	"github.com/creack/pty"
@@ -21,11 +23,36 @@ type resizeMessage struct {
 	Rows uint16 `json:"rows"`
 }
 
-// upgrader turns the /pty request into a WebSocket. The interactive mode is a
-// trusted-network tool, so cross-origin connections are allowed; tighten this
-// if you ever put an auth layer in front.
+// upgrader turns the /pty request into a WebSocket. WebSocket handshakes are
+// not subject to CORS, so the Origin check below is the only thing stopping a
+// page the user happens to visit from opening a shell here: browsers may
+// attach the credentials they cached for this origin to such a handshake, and
+// Basic auth alone would then wave it through.
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(*http.Request) bool { return true },
+	CheckOrigin: sameOrigin,
+}
+
+// sameOrigin reports whether the handshake came from a page this server
+// served. A request with no Origin header is not a browser (curl, wscat, a Go
+// dialer), and those are allowed: Origin only means something when a browser
+// is the one setting it, and a non-browser client can forge any value anyway.
+// Credentials remain required either way.
+func sameOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return true
+	}
+	// r.Host carries the host:port the client addressed, which is what the
+	// browser also puts in Origin, so this keeps working behind a proxy that
+	// forwards the original Host.
+	u, err := url.Parse(origin)
+	if err == nil && strings.EqualFold(u.Host, r.Host) {
+		return true
+	}
+	// Logged because a rejected handshake is otherwise a bare 403, and the
+	// usual cause is a proxy rewriting Host rather than an actual attack.
+	log.Printf("pty: rejected handshake with origin %q for host %q", origin, r.Host)
+	return false
 }
 
 // handleTerm serves the interactive terminal UI. It 404s when interactive mode

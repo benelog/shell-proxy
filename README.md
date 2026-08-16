@@ -132,6 +132,11 @@ When interactive mode is **not** enabled, `/term` and `/pty` return `404`, so th
 Notes:
 
 - **Off by default** for safety, because a PTY session is a full shell.
+- **Same-origin only.**
+  The `/pty` handshake is refused with `403` unless its `Origin` matches the host you addressed, so a page you happen to visit cannot open a shell here with credentials your browser cached.
+  Requests without an `Origin` header (curl, wscat, any non-browser client) are still accepted; they always need the credentials.
+- Each browser tab is its own session: a separate login shell with its own working directory and history.
+  Closing or reloading the tab ends that shell; there is no reattach.
 - **Unix only.**
   PTY allocation is not supported on Windows; `/pty` returns `501` there.
 - Works offline: the xterm.js front end is bundled into the binary, no CDN.

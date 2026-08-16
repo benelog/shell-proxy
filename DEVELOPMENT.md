@@ -52,6 +52,10 @@ Authentication wraps the whole mux in `server.New`, so a new route is protected 
 The 401 response must keep its `WWW-Authenticate` header, otherwise browsers never show the login prompt and the web UI becomes unreachable.
 Credential comparison goes through `crypto/subtle` on SHA-256 digests, so neither the password nor its length leaks through timing.
 
+Basic auth is not enough on its own for `/pty`: WebSocket handshakes are exempt from CORS, and a browser may attach the credentials it cached for this origin to a handshake started by any page.
+`sameOrigin` therefore requires the `Origin` header, when present, to match the request's `Host`, and a mismatch is logged before the 403 because the usual cause is a reverse proxy rewriting `Host` rather than an attack.
+A missing `Origin` means a non-browser client and is allowed, since such a client can forge any value anyway and still has to authenticate.
+
 Releasing
 ---------
 

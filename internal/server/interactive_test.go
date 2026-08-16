@@ -1,10 +1,13 @@
 package server
 
 import (
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gorilla/websocket"
 )
 
 func TestTermIs404WhenInteractiveDisabled(t *testing.T) {
@@ -64,6 +67,57 @@ func TestStatelessConsoleLinksToTermOnlyWhenInteractive(t *testing.T) {
 		if !strings.Contains(rec.Body.String(), `href="/term"`) {
 			t.Errorf("interactive=%t: page is missing the /term link markup", tc.interactive)
 		}
+	}
+}
+
+func TestSameOrigin(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		origin string
+		host   string
+		want   bool
+	}{
+		{"no origin means a non-browser client", "", "localhost:18080", true},
+		{"page served by this server", "http://localhost:18080", "localhost:18080", true},
+		{"https page on the same host", "https://box.local:8443", "box.local:8443", true},
+		{"host comparison ignores case", "http://Box.Local:8443", "box.local:8443", true},
+		{"another site entirely", "http://evil.example", "localhost:18080", false},
+		{"same host, different port", "http://localhost:9999", "localhost:18080", false},
+		{"unparseable origin", "://nonsense", "localhost:18080", false},
+		{"null origin from a sandboxed frame", "null", "localhost:18080", false},
+	} {
+		r := httptest.NewRequest(http.MethodGet, "/pty", nil)
+		r.Host = tc.host
+		if tc.origin != "" {
+			r.Header.Set("Origin", tc.origin)
+		}
+		if got := sameOrigin(r); got != tc.want {
+			t.Errorf("%s: sameOrigin(origin=%q, host=%q) = %t, want %t",
+				tc.name, tc.origin, tc.host, got, tc.want)
+		}
+	}
+}
+
+// A cross-origin handshake must be refused before the PTY is allocated, even
+// when it carries valid credentials: browsers may attach cached credentials
+// to a WebSocket handshake started by any page.
+func TestPTYRejectsCrossOriginHandshake(t *testing.T) {
+	s := newTestServer()
+	s.SetInteractive(true)
+	ts := httptest.NewServer(s.http.Handler)
+	defer ts.Close()
+
+	h := http.Header{}
+	h.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(testUser+":"+testPassword)))
+	h.Set("Origin", "http://evil.example")
+
+	conn, resp, err := websocket.DefaultDialer.Dial("ws"+strings.TrimPrefix(ts.URL, "http")+"/pty", h)
+	if err == nil {
+		_ = conn.Close()
+		t.Fatal("cross-origin handshake succeeded, want it refused")
+	}
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("status = %d, want 403", resp.StatusCode)
 	}
 }
 
