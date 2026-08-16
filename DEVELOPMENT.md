@@ -37,15 +37,19 @@ Layout
     main.go                            entry point, flags, port parsing, startup banner
     internal/auth/auth.go              resolves the Basic auth credentials (OS user + random password)
     internal/executor/executor.go      runs a command via the system shell, captures output
-    internal/server/server.go          HTTP server, Basic auth gate, stateless /exec and / handlers
+    internal/server/server.go          HTTP server, Basic auth gate, /, /console and /exec handlers
     internal/server/interactive.go     PTY + WebSocket bridge for /term and /pty
-    internal/web/index.html            stateless CLI-style console
+    internal/web/home.html             mode chooser served at /
+    internal/web/console.html          stateless CLI-style console served at /console
     internal/web/term.html             xterm.js interactive terminal UI
     internal/web/assets/               vendored xterm.js / CSS / fit-addon (go:embed)
     internal/web/web.go                embeds the HTML and assets into the binary
 
 The interactive endpoints are always registered but gated at request time on the server's `interactive` flag, so `/term` and `/pty` return `404` until the server is started with `--interactive`.
 Keep that gate in place when changing the PTY path, since it is what keeps the shell-spawning feature off by default.
+
+`/` is a chooser, not a UI: it serves `home.html` when both modes are available and redirects to `ConsolePath` when only the stateless one is.
+`/?command=...` is checked before either branch, because that contract predates the pages and scripts still rely on it.
 
 Authentication wraps the whole mux in `server.New`, so a new route is protected the moment it is registered: there is no per-handler auth code to forget.
 `New` takes the credentials as an argument rather than a setter, which makes an unauthenticated server impossible to construct.

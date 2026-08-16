@@ -59,7 +59,7 @@ func TestStatelessConsoleLinksToTermOnlyWhenInteractive(t *testing.T) {
 		s := newTestServer()
 		s.SetInteractive(tc.interactive)
 		rec := httptest.NewRecorder()
-		s.handleRoot(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+		s.handleConsole(rec, httptest.NewRequest(http.MethodGet, ConsolePath, nil))
 
 		if !strings.Contains(rec.Body.String(), tc.want) {
 			t.Errorf("interactive=%t: page did not contain %s", tc.interactive, tc.want)

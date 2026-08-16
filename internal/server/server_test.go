@@ -54,12 +54,12 @@ func TestExecMissingCommandIsBadRequest(t *testing.T) {
 	}
 }
 
-func TestRootServesUIWhenNoCommand(t *testing.T) {
+func TestConsoleServesUI(t *testing.T) {
 	s := newTestServer()
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, ConsolePath, nil)
 
-	s.handleRoot(rec, req)
+	s.handleConsole(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -67,23 +67,60 @@ func TestRootServesUIWhenNoCommand(t *testing.T) {
 	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/html") {
 		t.Errorf("content-type = %q, want text/html", ct)
 	}
-	if !strings.Contains(rec.Body.String(), "shell-proxy") {
-		t.Errorf("body did not contain the UI markup")
+	if !strings.Contains(rec.Body.String(), "type a command and press Enter") {
+		t.Errorf("body did not contain the console UI markup")
 	}
 }
 
-func TestRootExecutesWhenCommandGiven(t *testing.T) {
+// With no interactive mode there is only one UI, so "/" is a detour.
+func TestRootRedirectsToConsoleWhenNotInteractive(t *testing.T) {
 	s := newTestServer()
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/?command=echo+hi", nil)
 
-	s.handleRoot(rec, req)
+	s.handleRoot(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 
-	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
-		t.Errorf("content-type = %q, want application/json", ct)
+	if rec.Code != http.StatusFound {
+		t.Fatalf("status = %d, want 302", rec.Code)
 	}
-	if !strings.Contains(rec.Body.String(), "hi") {
-		t.Errorf("body = %q, want it to contain %q", rec.Body.String(), "hi")
+	if loc := rec.Header().Get("Location"); loc != ConsolePath {
+		t.Errorf("Location = %q, want %q", loc, ConsolePath)
+	}
+}
+
+func TestRootServesModeChooserWhenInteractive(t *testing.T) {
+	s := newTestServer()
+	s.SetInteractive(true)
+	rec := httptest.NewRecorder()
+
+	s.handleRoot(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	for _, want := range []string{`href="` + ConsolePath + `"`, `href="/term"`} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Errorf("chooser is missing %s", want)
+		}
+	}
+}
+
+// "/?command=..." predates both pages and must keep executing in either mode,
+// rather than being swallowed by the chooser or the redirect.
+func TestRootExecutesWhenCommandGiven(t *testing.T) {
+	for _, interactive := range []bool{false, true} {
+		s := newTestServer()
+		s.SetInteractive(interactive)
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/?command=echo+hi", nil)
+
+		s.handleRoot(rec, req)
+
+		if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+			t.Errorf("interactive=%t: content-type = %q, want application/json", interactive, ct)
+		}
+		if !strings.Contains(rec.Body.String(), "hi") {
+			t.Errorf("interactive=%t: body = %q, want it to contain %q", interactive, rec.Body.String(), "hi")
+		}
 	}
 }
 

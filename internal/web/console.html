@@ -39,8 +39,8 @@
     header .status.busy { color: var(--accent); }
     /* Shown only when the server was started with --interactive; the server
        flips data-interactive on <body> as it serves this page. */
-    header .term-link { display: none; font-size: 12px; text-decoration: none; }
-    body[data-interactive="true"] header .term-link { display: inline; }
+    header .nav-link { display: none; font-size: 12px; text-decoration: none; }
+    body[data-interactive="true"] header .nav-link { display: inline; }
     #terminal {
       flex: 1;
       overflow-y: auto;
@@ -79,7 +79,8 @@
     <span class="title" id="host">shell-proxy</span>
     <span class="spacer"></span>
     <span class="status" id="status">ready</span>
-    <a class="term-link" href="/term" title="vi, top and other full-screen programs need a real terminal">⌨ interactive terminal</a>
+    <a class="nav-link" href="/term" title="vi, top and other full-screen programs need a real terminal">⌨ interactive terminal</a>
+    <a class="nav-link" href="/" title="compare the two modes">↩ modes</a>
   </header>
 
   <div id="terminal" aria-live="polite"></div>

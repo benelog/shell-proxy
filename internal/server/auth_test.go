@@ -68,7 +68,7 @@ func TestRequestWithCorrectCredentialsSucceeds(t *testing.T) {
 
 // Every route sits behind the same gate, not just /exec.
 func TestAllRoutesRequireCredentials(t *testing.T) {
-	for _, path := range []string{"/", "/exec", "/stop", "/term", "/pty", "/assets/xterm.js"} {
+	for _, path := range []string{"/", ConsolePath, "/exec", "/stop", "/term", "/pty", "/assets/xterm.js"} {
 		s := newTestServer()
 		s.SetInteractive(true)
 		resp := doRequest(t, s, path, "", "")

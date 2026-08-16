@@ -1,5 +1,6 @@
-// Package web holds the static assets for the UIs: the dependency-free
-// stateless console and the xterm.js-based interactive terminal.
+// Package web holds the static assets for the UIs: the mode chooser, the
+// dependency-free stateless console and the xterm.js-based interactive
+// terminal.
 package web
 
 import (
@@ -7,7 +8,7 @@ import (
 	"io/fs"
 )
 
-//go:embed index.html term.html assets
+//go:embed home.html console.html term.html assets
 var files embed.FS
 
 // mustRead returns the contents of an embedded file, panicking on error.
@@ -20,8 +21,13 @@ func mustRead(name string) []byte {
 	return b
 }
 
-// IndexHTML is the stateless CLI-style console served at "/".
-var IndexHTML = mustRead("index.html")
+// HomeHTML is the mode chooser served at "/". It is only reachable when the
+// interactive terminal is enabled; otherwise "/" redirects to the console,
+// since there would be nothing to choose between.
+var HomeHTML = mustRead("home.html")
+
+// ConsoleHTML is the stateless CLI-style console served at "/console".
+var ConsoleHTML = mustRead("console.html")
 
 // TermHTML is the interactive xterm.js terminal served at "/term".
 var TermHTML = mustRead("term.html")

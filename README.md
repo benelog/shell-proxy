@@ -75,9 +75,15 @@ A password given with `--password` is never echoed to the console.
 In a browser, the first request pops up the standard login prompt; the same credentials are then reused for `/term` and its `/pty` WebSocket connection.
 
 
+## Choosing a mode
+
+`/` explains the two modes side by side and links to each, because they are not interchangeable: one returns a JSON result a script can read, the other gives you a terminal.
+With `--interactive` off there is nothing to choose, so `/` redirects to `/console`.
+
+
 ## Stateless mode (default)
 
-Open the server address in a browser (`http://localhost:18080/`).
+Open `http://localhost:18080/console`.
 You get a CLI-style console: type a command, press Enter, and see stdout (white), stderr (red), and the exit code inline.
 `↑`/`↓` walk through history; `clear` wipes the screen.
 
@@ -88,12 +94,13 @@ Those need [interactive mode](#interactive-mode---interactive); when the server 
 
 ### HTTP API
 
-| Method   | Path                    | Description                                     |
-| -------- | ----------------------- | ----------------------------------------------- |
-| GET/POST | `/exec?command=<cmd>`   | Run `<cmd>`, return the result as JSON          |
-| GET      | `/?command=<cmd>`       | Same as above                                   |
-| GET      | `/`                     | Serve the web UI (when no `command` is present) |
-| GET      | `/stop`                 | Shut the server down                            |
+| Method   | Path                    | Description                                                          |
+| -------- | ----------------------- | -------------------------------------------------------------------- |
+| GET/POST | `/exec?command=<cmd>`   | Run `<cmd>`, return the result as JSON                               |
+| GET      | `/?command=<cmd>`       | Same as above                                                        |
+| GET      | `/console`              | Serve the stateless web console                                      |
+| GET      | `/`                     | Mode chooser, or a redirect to `/console` without `--interactive`    |
+| GET      | `/stop`                 | Shut the server down                                                 |
 
 Example (`-u` carries the Basic credentials printed at startup):
 
@@ -119,7 +126,7 @@ Each command has a 61-second timeout; a command killed by the timeout reports `"
 
 Start with `--interactive` and open `http://localhost:18080/term`.
 This runs a real login shell in a PTY and streams it to an xterm.js terminal over WebSocket, so **interactive full-screen programs work**: `vi`, `top`, `claude`, tab-completion, colors, `Ctrl+C`, resizing, and so on.
-The startup banner prints the `/term` address, and the stateless console links to it, so you do not have to remember the path.
+The startup banner prints the `/term` address, and both `/` and the console header link to it, so you do not have to remember the path.
 
 | Path                    | Description                                                  |
 | ----------------------- | ------------------------------------------------------------ |

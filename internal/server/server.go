@@ -46,6 +46,7 @@ func New(port int, creds auth.Credentials) *ShellProxyServer {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleRoot)
+	mux.HandleFunc("/console", s.handleConsole)
 	mux.HandleFunc("/exec", s.handleExec)
 	mux.HandleFunc("/stop", s.handleStop)
 
@@ -115,20 +116,35 @@ func (s *ShellProxyServer) Stop() error {
 	return s.http.Shutdown(ctx)
 }
 
-// handleRoot serves the UI when no command is given, and, for backward
-// compatibility with the original "/?command=..." contract, executes the
-// command when one is present.
+// ConsolePath is where the stateless console lives. "/" is the mode chooser
+// instead, so the two UIs are presented side by side rather than one of them
+// being the thing you land on by accident.
+const ConsolePath = "/console"
+
+// handleRoot picks between the two UIs. With only one mode available there is
+// nothing to choose, so it redirects to the console. The "/?command=..."
+// contract predates both pages and still executes, whatever the mode.
 func (s *ShellProxyServer) handleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
 	}
-	if r.URL.Query().Get("command") == "" {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write(s.indexHTML())
+	if r.URL.Query().Get("command") != "" {
+		s.handleExec(w, r)
 		return
 	}
-	s.handleExec(w, r)
+	if !s.interactive {
+		http.Redirect(w, r, ConsolePath, http.StatusFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(web.HomeHTML)
+}
+
+// handleConsole serves the stateless CLI-style console.
+func (s *ShellProxyServer) handleConsole(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(s.consoleHTML())
 }
 
 // interactiveOff / interactiveOn are the <body> attribute the stateless page
@@ -140,14 +156,14 @@ var (
 	interactiveOn  = []byte(`data-interactive="true"`)
 )
 
-// indexHTML returns the stateless console, telling it whether the interactive
-// terminal is reachable. Full-screen programs (vi, top, and the like) cannot
-// work in stateless mode, so this link is how users find /term.
-func (s *ShellProxyServer) indexHTML() []byte {
+// consoleHTML returns the stateless console, telling it whether the
+// interactive terminal is reachable. Full-screen programs (vi, top, and the
+// like) cannot work in stateless mode, so this link is how users get out.
+func (s *ShellProxyServer) consoleHTML() []byte {
 	if !s.interactive {
-		return web.IndexHTML
+		return web.ConsoleHTML
 	}
-	return bytes.Replace(web.IndexHTML, interactiveOff, interactiveOn, 1)
+	return bytes.Replace(web.ConsoleHTML, interactiveOff, interactiveOn, 1)
 }
 
 // handleExec runs the "command" parameter and returns the result as JSON.
