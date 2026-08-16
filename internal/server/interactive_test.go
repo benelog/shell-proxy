@@ -42,6 +42,11 @@ func TestTermServesUIWhenInteractiveEnabled(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "xterm.js") {
 		t.Errorf("term UI did not reference xterm.js")
 	}
+	// The HTML cannot consume the Go constant, so this assertion is what keeps
+	// the page's back link from drifting away from the actual route.
+	if !strings.Contains(rec.Body.String(), `href="`+ConsolePath+`"`) {
+		t.Errorf("term UI is missing the back link to %s", ConsolePath)
+	}
 }
 
 // The stateless console only advertises /term when that endpoint would

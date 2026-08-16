@@ -36,6 +36,11 @@ type ShellProxyServer struct {
 	stopFn func()
 }
 
+// ConsolePath is where the stateless console lives. "/" is the mode chooser
+// instead, so the two UIs are presented side by side rather than one of them
+// being the thing you land on by accident.
+const ConsolePath = "/console"
+
 // New builds a ShellProxyServer listening on the given port. The credentials
 // are required: every endpoint is behind HTTP Basic auth, and passing them at
 // construction time makes it impossible to start an unprotected server.
@@ -46,7 +51,7 @@ func New(port int, creds auth.Credentials) *ShellProxyServer {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleRoot)
-	mux.HandleFunc("/console", s.handleConsole)
+	mux.HandleFunc(ConsolePath, s.handleConsole)
 	mux.HandleFunc("/exec", s.handleExec)
 	mux.HandleFunc("/stop", s.handleStop)
 
@@ -116,11 +121,6 @@ func (s *ShellProxyServer) Stop() error {
 	return s.http.Shutdown(ctx)
 }
 
-// ConsolePath is where the stateless console lives. "/" is the mode chooser
-// instead, so the two UIs are presented side by side rather than one of them
-// being the thing you land on by accident.
-const ConsolePath = "/console"
-
 // handleRoot picks between the two UIs. With only one mode available there is
 // nothing to choose, so it redirects to the console. The "/?command=..."
 // contract predates both pages and still executes, whatever the mode.
@@ -156,6 +156,10 @@ var (
 	interactiveOn  = []byte(`data-interactive="true"`)
 )
 
+// consoleInteractiveHTML is the console page with that attribute flipped,
+// built once since both variants are static.
+var consoleInteractiveHTML = bytes.Replace(web.ConsoleHTML, interactiveOff, interactiveOn, 1)
+
 // consoleHTML returns the stateless console, telling it whether the
 // interactive terminal is reachable. Full-screen programs (vi, top, and the
 // like) cannot work in stateless mode, so this link is how users get out.
@@ -163,7 +167,7 @@ func (s *ShellProxyServer) consoleHTML() []byte {
 	if !s.interactive {
 		return web.ConsoleHTML
 	}
-	return bytes.Replace(web.ConsoleHTML, interactiveOff, interactiveOn, 1)
+	return consoleInteractiveHTML
 }
 
 // handleExec runs the "command" parameter and returns the result as JSON.

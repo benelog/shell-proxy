@@ -96,10 +96,10 @@ func printModePolicy(interactive bool, ip string, port int) {
 		fmt.Println("Interactive PTY mode ENABLED (a real login shell; trusted networks only).")
 		fmt.Printf("   Pick a mode   : http://%s:%d/          the two modes, side by side\n", ip, port)
 		fmt.Printf("   Terminal      : http://%s:%d/term      vi, top, and other full-screen programs\n", ip, port)
-		fmt.Printf("   JSON console  : http://%s:%d/console   one command in, one JSON result out\n", ip, port)
+		fmt.Printf("   JSON console  : http://%s:%d%s   one command in, one JSON result out\n", ip, port, server.ConsolePath)
 	} else {
 		fmt.Println("Interactive PTY mode disabled: /term and /pty return 404.")
-		fmt.Printf("   JSON console  : http://%s:%d/console   one command in, one JSON result out\n", ip, port)
+		fmt.Printf("   JSON console  : http://%s:%d%s   one command in, one JSON result out\n", ip, port, server.ConsolePath)
 		fmt.Println("   \"/\" redirects there, since it is the only mode available.")
 		fmt.Println("   Full-screen programs (vi, top, ...) cannot run here; they need a real")
 		fmt.Println("   terminal, so restart with --interactive to get one at /term.")
@@ -125,7 +125,7 @@ func localIP() string {
 func printAuthPolicy(creds auth.Credentials, port int) {
 	fmt.Println("-----------------------------")
 	fmt.Println("Authentication: HTTP Basic auth is required on every endpoint")
-	fmt.Println("   (/, /exec, /stop, /term, /pty, /assets/).")
+	fmt.Println("   (/, /console, /exec, /stop, /term, /pty, /assets/).")
 	fmt.Println("   Username : " + creds.Username + usernameOrigin(creds))
 	if creds.GeneratedPassword {
 		fmt.Println("   Password : " + creds.Password + "  (randomly generated for this run)")

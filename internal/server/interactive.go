@@ -36,7 +36,9 @@ var upgrader = websocket.Upgrader{
 // served. A request with no Origin header is not a browser (curl, wscat, a Go
 // dialer), and those are allowed: Origin only means something when a browser
 // is the one setting it, and a non-browser client can forge any value anyway.
-// Credentials remain required either way.
+// Credentials remain required either way. This is the same check gorilla
+// applies when CheckOrigin is nil; it exists as our own function only so a
+// rejection can be logged.
 func sameOrigin(r *http.Request) bool {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
