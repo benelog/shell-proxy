@@ -1,5 +1,4 @@
-Shell Proxy
-===========
+# Shell Proxy
 
 A small HTTP server that executes shell commands and returns the result as JSON, plus a terminal-style web UI to type commands from the browser.
 It has two modes:

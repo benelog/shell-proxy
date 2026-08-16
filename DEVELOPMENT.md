@@ -1,5 +1,4 @@
-Developing shell-proxy
-=========
+# Developing shell-proxy
 
 Go 1.22 or later is required to build and test.
 
@@ -9,13 +8,12 @@ Dependencies differ by mode:
 - **Interactive mode** pulls in [`github.com/creack/pty`](https://github.com/creack/pty) (PTY allocation) and [`github.com/gorilla/websocket`](https://github.com/gorilla/websocket) (WebSocket), plus the vendored [xterm.js](https://xtermjs.org/) front end under `internal/web/assets`.
   These are only reachable from the interactive endpoints; the stateless request path never touches them.
 
-Build
+## Build
 
     make build      # go build -o shell-proxy .
     make run        # build and start on the default port
 
-Quality tools
----------
+## Quality tools
 
     make fmt        # goimports -w .
     make lint       # golangci-lint run ./...
@@ -31,8 +29,7 @@ Quality tools
 The enabled linters are declared in `.golangci.yml` (the `standard` set plus `misspell`, with `gofmt`/`goimports` as formatters).
 The same checks run on every push and pull request through `.github/workflows/ci.yml`.
 
-Layout
----------
+## Layout
 
     main.go                            entry point, flags, port parsing, startup banner
     internal/auth/auth.go              resolves the Basic auth credentials (OS user + random password)
@@ -60,8 +57,7 @@ Basic auth is not enough on its own for `/pty`: WebSocket handshakes are exempt 
 `sameOrigin` therefore requires the `Origin` header, when present, to match the request's `Host`, and a mismatch is logged before the 403 because the usual cause is a reverse proxy rewriting `Host` rather than an attack.
 A missing `Origin` means a non-browser client and is allowed, since such a client can forge any value anyway and still has to authenticate.
 
-Releasing
----------
+## Releasing
 
 The whole mechanical sequence lives in `.claude/skills/release/scripts/release.sh`:
 
