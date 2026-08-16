@@ -1,4 +1,4 @@
-shell-proxy
+Shell Proxy
 ===========
 
 A small HTTP server that executes shell commands and returns the result as JSON, plus a terminal-style web UI to type commands from the browser.
@@ -152,16 +152,16 @@ Notes:
 ## How this differs from similar open-source tools
 
 There is a crowded field of "shell over the web" projects.
-They fall into two camps; `shell-proxy` deliberately offers **both** in one binary, with the split kept explicit.
+They fall into two camps; Shell Proxy deliberately offers **both** in one binary, with the split kept explicit.
 
 **1. Interactive PTY streamers**: [gotty](https://github.com/yudai/gotty), [ttyd](https://github.com/tsl0922/ttyd), [wetty](https://github.com/butlerx/wetty), [webssh](https://github.com/huashengdun/webssh).
 These allocate a real pseudo-terminal and stream it over WebSocket with xterm.js, giving a fully interactive session.
-That is exactly what `shell-proxy`'s `--interactive` mode does, but it is *one opt-in half* of the tool, off by default, rather than the whole product.
+That is exactly what Shell Proxy's `--interactive` mode does, but it is *one opt-in half* of the tool, off by default, rather than the whole product.
 
 **2. Command-to-HTTP mappers**: [shell2http](https://github.com/msoap/shell2http), [shellst](https://github.com/fdefelici/shellst), [go-shell-run](https://github.com/harrisoncramer/go-shell-run).
 These expose shell commands as HTTP endpoints, usually mapping *fixed* commands to *fixed* routes (e.g. `/date` → `date`), aimed at webhooks and automation.
 
-**Where `shell-proxy` differs:**
+**Where Shell Proxy differs:**
 
 - **Two modes, one binary, clean separation.**
   The same tool gives you a scriptable stateless JSON API *and* an interactive PTY terminal, while most projects pick one lane.

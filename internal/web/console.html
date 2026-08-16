@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>shell-proxy · console</title>
+  <title>Shell Proxy · console</title>
   <style>
     :root {
       --bg: #0a0d12;
@@ -141,7 +141,7 @@
 <body data-interactive="false">
   <header>
     <span class="led"></span>
-    <span class="title" id="host">shell-proxy</span>
+    <span class="title" id="host">Shell Proxy</span>
     <span class="mode">stateless</span>
     <span class="spacer"></span>
     <a class="nav-link" href="/term" title="vi, top and other full-screen programs need a real terminal">⌨ live terminal</a>
@@ -165,7 +165,7 @@
       const history = [];
       let histIdx = 0;
 
-      document.getElementById('host').textContent = location.host + ' | shell-proxy';
+      document.getElementById('host').textContent = location.host + ' | Shell Proxy';
 
       function scroll() { term.scrollTop = term.scrollHeight; }
 
@@ -259,7 +259,7 @@
         if (window.getSelection().isCollapsed) input.focus();
       });
 
-      append('shell-proxy: type a shell command below. "clear" wipes the screen.', 'meta');
+      append('Shell Proxy: type a shell command below. "clear" wipes the screen.', 'meta');
       scroll();
     })();
   </script>

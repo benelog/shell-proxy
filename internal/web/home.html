@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>shell-proxy</title>
+  <title>Shell Proxy</title>
   <style>
     :root {
       --bg: #0a0d12;
@@ -47,7 +47,6 @@
       letter-spacing: -0.02em;
       margin: 0 0 10px;
     }
-    h1 .sigil { color: var(--dim); font-weight: 400; }
     .cursor {
       display: inline-block;
       width: 0.55em; height: 1.1em;
@@ -152,12 +151,12 @@
 <body>
   <header>
     <span class="led"></span>
-    <span class="title" id="host">shell-proxy</span>
+    <span class="title" id="host">Shell Proxy</span>
   </header>
 
   <main>
     <div class="inner">
-      <h1><span class="sigil">$</span> shell-proxy<span class="cursor"></span></h1>
+      <h1>Shell Proxy<span class="cursor"></span></h1>
       <p class="lede">Two shells into this machine, and they are not the same tool
         with a different skin. <strong>Pick by what you need.</strong></p>
 
@@ -202,7 +201,7 @@
   </main>
 
   <script>
-    document.getElementById('host').textContent = location.host + ' | shell-proxy';
+    document.getElementById('host').textContent = location.host + ' | Shell Proxy';
   </script>
 </body>
 </html>
