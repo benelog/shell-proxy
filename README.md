@@ -80,12 +80,16 @@ In a browser, the first request pops up the standard login prompt; the same cred
 `/` explains the two modes side by side and links to each, because they are not interchangeable: one returns a JSON result a script can read, the other gives you a terminal.
 With `--interactive` off there is nothing to choose, so `/` redirects to `/console`.
 
+![The mode chooser at /](docs/home.jpg)
+
 
 ## Stateless mode (default)
 
 Open `http://localhost:18080/console`.
 You get a CLI-style console: type a command, press Enter, and see stdout (white), stderr (red), and the exit code inline.
 `↑`/`↓` walk through history; `clear` wipes the screen.
+
+![The stateless console at /console](docs/console.jpg)
 
 This UI and its API have no external dependencies, ship one embedded HTML page, and work offline.
 
@@ -127,6 +131,8 @@ Each command has a 61-second timeout; a command killed by the timeout reports `"
 Start with `--interactive` and open `http://localhost:18080/term`.
 This runs a real login shell in a PTY and streams it to an xterm.js terminal over WebSocket, so **interactive full-screen programs work**: `vi`, `top`, `claude`, tab-completion, colors, `Ctrl+C`, resizing, and so on.
 The startup banner prints the `/term` address, and both `/` and the console header link to it, so you do not have to remember the path.
+
+![Claude Code running in the /term terminal](docs/term-claude-code.jpg)
 
 | Path                    | Description                                                  |
 | ----------------------- | ------------------------------------------------------------ |
